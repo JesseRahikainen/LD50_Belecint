@@ -126,6 +126,11 @@ static void setupScales( void )
 }
 
 static int chords[][4] = {
+	{ 0, 2, -1, -1 }, // these first few aren't actual chords, but i'm too lazy to rename everything
+	{ 1, 3, -1, -1 },
+	{ 2, 4, -1, -1 },
+	{ 3, 5, -1, -1 },
+	{ 4, 6, -1, -1 },
 	{ 0, 2, 4, -1 },
 	{ 1, 3, 5, -1 },
 	{ 2, 4, 6, -1 },
@@ -203,6 +208,11 @@ static void startArcMoveOut( DangerArc* arc )
 	setTween( &arc->repelledMovement, arc->baseDistance, arc->repelDistance, 1.0f, easeOutCirc );
 }
 
+#define FAST_BEAT_BASE 8
+#define SLOW_BEAT_BASE 24
+#define FAST_BEAT_VAR 2
+#define SLOW_BEAT_VAR 8
+
 static size_t addArc( float baseAngle, float halfArc, float val, float startDistance, int resolution, bool movingIn, int health )
 {
 	DangerArc newArc;
@@ -216,8 +226,8 @@ static size_t addArc( float baseAngle, float halfArc, float val, float startDist
 	newArc.isClicked = false;
 
 	float t = easeOutCirc( (float)sb_Count( sbArcs ) / 32.0f );
-	int baseBeat = (int)lerp( 8, 24, t );
-	int beatMod = (int)lerp( 2, 8, t );
+	int baseBeat = (int)lerp( FAST_BEAT_BASE, SLOW_BEAT_BASE, t );
+	int beatMod = (int)lerp( FAST_BEAT_VAR, SLOW_BEAT_VAR, t );
 
 	// based on the number of current arcs we'll want to make them slower, so they should take more beats to reach the center
 	//  so start at 8 +/- 2, fatter take longer
@@ -318,6 +328,14 @@ static void setColors( )
 	s = createColorSetup( "Vintage", clr_hex( 0x5a3d2bFF ), clr_hex( 0x5a3d2bFF ),
 		clr_hex( 0xe5771eFF ), clr_hex( 0xf4a127FF ),
 		clr_hex( 0xffecb4FF ), clr_hex( 0xffecb4FF ), clr_hex( 0x75c8aeFF ) );
+	sb_Push( sbColors, s );
+
+	s = createColorSetup( "Dungeon", clr_hex( 0x000000FF ), // bg
+		clr_hex( 0x000000FF ), // text
+		clr_hex( 0x444444FF ), clr_hex( 0xFF0000FF ), // center inner, outer
+		clr_hex( 0xFFFFFFFF ), // warning
+		clr_hex( 0xFF0000FF ), // divider
+		clr_hex( 0xEEEEEEFF ) ); // opposition
 	sb_Push( sbColors, s );
 }
 
@@ -503,9 +521,31 @@ static void playChord( int c )
 	}
 }
 
+static int* sbChosenChords = NULL;
 static void playRandomChord( void )
 {
-	playChord( rand_GetRangeS32( NULL, 0, ARRAY_SIZE( chords ) - 1 ) );
+	// find a chord that contains the the note, or a note within a step of the last note
+	sb_Clear( sbChosenChords );
+	for( size_t i = 0; i < ARRAY_SIZE( chords ); ++i ) {
+		bool isValid = false;
+		for( size_t a = 0; ( a < 4 ) && !isValid; ++a ) {
+			if( ( chords[i][a] == currentHitSound ) || ( chords[i][a] == ( currentHitSound - 1 ) ) || ( chords[i][a] == ( currentHitSound + 1 ) ) ) {
+				isValid = true;
+			}
+		}
+
+		if( isValid ) {
+			sb_Push( sbChosenChords, i );
+		}
+	}
+
+	if( sb_Count( sbChosenChords ) == 0 ) {
+		// fall back
+		int rand = rand_GetRangeS32( NULL, 0, ARRAY_SIZE( chords ) - 1 );
+		sb_Push( sbChosenChords, rand );
+	}
+
+	playChord( sbChosenChords[rand_GetRangeS32( NULL, 0, sb_Count( sbChosenChords ) - 1 )] );// rand_GetRangeS32( NULL, 0, ARRAY_SIZE( chords ) - 1 ) );
 }
 
 static void chooseNewHitSound( )
@@ -661,7 +701,7 @@ static void nextScale( void )
 		currScale = 0;
 	}
 	if( playOnChordChange ) {
-		playChord( 2 );
+		playChord( 7 );
 	}
 
 	resetInfo( &scaleInfoHide );
@@ -674,7 +714,7 @@ static void prevScale( void )
 		currScale = sb_Count( sbScales ) - 1;
 	}
 	if( playOnChordChange ) {
-		playChord( 2 );
+		playChord( 7 );
 	}
 
 	resetInfo( &scaleInfoHide );
