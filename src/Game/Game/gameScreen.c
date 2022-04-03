@@ -49,7 +49,7 @@
 #define BPS ( BPM / 60.0f )
 #define BEAT_LENGTH ( 1 / BPS )
 
-static Color bgClr;
+/*static Color bgClr;
 static Color centerCircleInnerClr;
 static Color centerCircleOuterClr;
 
@@ -59,6 +59,8 @@ static Color warningCircleOuterClr;
 static Color dividingLinesClr;
 static Color opposingCircleClr;
 
+static Color textClr;//*/
+
 static float prevTotalTime;
 static float currTotalTime;
 static float totalTime;
@@ -67,12 +69,62 @@ static int whiteImg;
 static PlatformTexture whiteTex;
 static int lineImg;
 static int displayFont;
+static int textFont;
 
 static int score;
 
 static int currentHitSound;
-// C major scale             C   D   E   F   G   A   B
-static int hitSounds[7] = { -1, -1, -1, -1, -1, -1, -1 };
+//            0  1  2  3  4  5  6  7  8  9  10 11 12
+//            C  Cs D  Ds E  F  Fs G  Gs A  As B  C
+//
+// major                   C  D  E  F  G  A  B  C  = 0, 2, 4, 5, 7, 9, 11, 12
+// harmonic minor          C  D  Ds F  G  Gs B  C  = 0, 2, 3, 5, 7, 8, 11, 12
+// natural minor           C  D  Ds F  G  Gs As C  = 0, 2, 3, 5, 6, 8, 10, 12
+// melodic minor up        C  D  Ds F  G  A  B  C  = 0, 2, 3, 5, 7, 9, 11, 12
+// melodic minor down      C  D  E  F  G  A  As C  = 0, 2, 4, 5, 7, 9, 10, 12
+// dorian                  C  D  Ds F  G  A  As C  = 0, 2, 3, 5, 7, 9, 10, 12
+// mixolydian              C  D  E  F  G  A  As C  = 0, 2, 4, 5, 7, 9, 10, 12
+// hungarian minor         C  D  Ds Fs G  Gs B  C  = 0, 2, 3, 6, 7, 8, 11, 12
+static int sounds[13];
+#define NOTES_PER_SCALE 7 // we're ignoring the final C
+
+typedef struct {
+	const char* name;
+	int notes[NOTES_PER_SCALE];
+} Scale;
+
+static Scale* sbScales = NULL;
+static int currScale;
+
+static void setupScales( void )
+{
+	Scale major = { "Major", { 0, 2, 4, 5, 7, 9, 11 } };
+	sb_Push( sbScales, major );
+
+	Scale harmonicMinor = { "Harmonic Minor", { 0, 2, 3, 5, 7, 8, 11 } };
+	sb_Push( sbScales, harmonicMinor );
+
+	Scale naturalMinor = { "Natural Minor", { 0, 2, 3, 5, 6, 8, 10 } };
+	sb_Push( sbScales, naturalMinor );
+
+	Scale melodicMinorUp = { "Melodic Minor Up", { 0, 2, 3, 5, 7, 9, 11 } };
+	sb_Push( sbScales, melodicMinorUp );
+
+	Scale melodicMinorDown = { "Melodic Minor Down", { 0, 2, 4, 5, 7, 9, 10 } };
+	sb_Push( sbScales, melodicMinorDown );
+
+	Scale dorian = { "Dorian", { 0, 2, 3, 5, 7, 9, 10 } };
+	sb_Push( sbScales, dorian );
+
+	Scale mixolydian = { "Mixolydian", { 0, 2, 4, 5, 7, 9, 10 } };
+	sb_Push( sbScales, mixolydian );
+
+	Scale hungarianMinor = { "Hungarian Minor", { 0, 2, 3, 6, 7, 8, 11 } };
+	sb_Push( sbScales, hungarianMinor );
+
+	currScale = 0;
+}
+
 static int chords[][4] = {
 	{ 0, 2, 4, -1 },
 	{ 1, 3, 5, -1 },
@@ -204,21 +256,69 @@ static void initGame( )
 
 	score = 0;
 
-	currentHitSound = rand_GetRangeS32( NULL, 0, ARRAY_SIZE( hitSounds ) - 1 );
+	currentHitSound = rand_GetRangeS32( NULL, 0, NOTES_PER_SCALE - 1);
+}
+
+typedef struct {
+	const char* name;
+	Color bgClr;
+	Color scoreTextClr;
+	Color centerInnerClr;
+	Color centerOuterClr;
+	Color warningInnerClr;
+	Color warningOuterClr;
+	Color dividerClr;
+	Color opposingCircleClr;
+} ColorSetup;
+
+ColorSetup* sbColors = NULL;
+static int currColorSetup = 0;
+
+static ColorSetup createColorSetup( const char* name, Color bgClr, Color scoreTextClr, Color centerInnerClr, Color centerOuterClr,
+	Color warningClr, Color dividerClr, Color opposingCircleClr )
+{
+	ColorSetup setup;
+
+	setup.name = name;
+	setup.bgClr = bgClr;
+	setup.scoreTextClr = scoreTextClr;
+	setup.centerInnerClr = centerInnerClr;
+	setup.centerOuterClr = centerOuterClr;
+	setup.warningInnerClr = setup.warningOuterClr = warningClr;
+	setup.warningOuterClr.a = 0.0f;
+	setup.dividerClr = dividerClr;
+	setup.opposingCircleClr = opposingCircleClr;
+
+	return setup;
 }
 
 static void setColors( )
 {
-	bgClr = clr_hex( 0x2B2D42FF );
+	// original colors
+	ColorSetup s = createColorSetup( "Original", clr_hex( 0x2B2D42FF ), clr_hex( 0x2B2D42FF ), clr_hex( 0x00FFE2FF ),
+		clr_hex( 0x00FFC5FF ), clr_hex( 0xADF5FFFF ), clr_hex( 0xD55672FF ), clr_hex( 0xC42021FF ) );
+	sb_Push( sbColors, s );
 
-	centerCircleInnerClr = clr_hex( 0x00FFE2FF );
-	centerCircleOuterClr = clr_hex( 0x00FFC5FF );
+	s = createColorSetup( "Synth", clr_hex( 0x41277DFF ), clr_hex( 0x41277DFF ), clr_hex( 0x1E873DFF ),
+		clr_hex( 0x99C8A7FF ), clr_hex( 0x6EDB8FFF ), clr_hex( 0xB2E340FF ), clr_hex( 0xAD458EFF ) );
+	sb_Push( sbColors, s );
 
-	warningCircleInnerClr = clr_hex( 0xADF5FFFF );
-	warningCircleOuterClr = clr_hex( 0xADF5FF00 );
+	s = createColorSetup( "Sunshine", clr_hex( 0x2D93ADFF ), clr_hex( 0x2D93ADFF ), clr_hex( 0xFFFCC7FF ),
+		clr_hex( 0xFFF757FF ), clr_hex( 0xD6C9C9FF ), clr_hex( 0xD6C9C9FF ), clr_hex( 0x37393AFF ) );
+	sb_Push( sbColors, s );
 
-	dividingLinesClr = clr_hex( 0xD55672FF );
-	opposingCircleClr = clr_hex( 0xC42021FF );
+	s = createColorSetup( "Night and Blood", clr_hex( 0x2B2C31FF ), clr_hex( 0xDEBA6EFF ), clr_hex( 0x5E2C2DFF ),
+		clr_hex( 0x1F0F0FFF ), clr_hex( 0x5E2C2DFF ), clr_hex( 0xFFFAE9FF ), clr_hex( 0xDEBA6EFF ) );
+	sb_Push( sbColors, s );
+
+	s = createColorSetup( "Call of the Void", clr_hex( 0x18311DFF ), clr_hex( 0x18311DFF ), clr_hex( 0xA9843CFF ),
+		clr_hex( 0x906104FF ), clr_hex( 0x764404FF ), clr_hex( 0x6B8F53FF ), clr_hex( 0x687074FF ) ); // https://www.youtube.com/watch?v=wXRaPlvFvuk
+	sb_Push( sbColors, s );
+
+	s = createColorSetup( "Vintage", clr_hex( 0x5a3d2bFF ), clr_hex( 0x5a3d2bFF ),
+		clr_hex( 0xe5771eFF ), clr_hex( 0xf4a127FF ),
+		clr_hex( 0xffecb4FF ), clr_hex( 0xffecb4FF ), clr_hex( 0x75c8aeFF ) );
+	sb_Push( sbColors, s );
 }
 
 static void drawRingArc( float innerRadius, float outerRadius, float startAngleRad, float endAngleRad, Color clr, int resolution )
@@ -370,7 +470,8 @@ static void gfxDrawDangerArcs( float t )
 			halfWidth *= lerp( 0.1f, 1.0f, t );
 		}
 		drawRingArc( dist - halfWidth, dist + halfWidth,
-			sbArcs[i].baseAngle - sbArcs[i].halfArc, sbArcs[i].baseAngle + sbArcs[i].halfArc, opposingCircleClr, sbArcs[i].resolution );
+			sbArcs[i].baseAngle - sbArcs[i].halfArc, sbArcs[i].baseAngle + sbArcs[i].halfArc,
+			sbColors[currColorSetup].opposingCircleClr, sbArcs[i].resolution );
 	}
 }
 
@@ -385,8 +486,26 @@ static void gfxDrawCenterCircle( float t )
 {
 	totalTime = lerp( prevTotalTime, currTotalTime, t );
 
-	drawCircle( WARNING_RADIUS, warningCircleInnerClr, warningCircleOuterClr, 60, -2, noNoiseFunction );
-	drawCircle( PROTECT_RADIUS, centerCircleInnerClr, centerCircleOuterClr, 60, 0, circleNoiseFunction );
+	drawCircle( WARNING_RADIUS, sbColors[currColorSetup].warningInnerClr, sbColors[currColorSetup].warningOuterClr, 60, -2, noNoiseFunction );
+	drawCircle( PROTECT_RADIUS, sbColors[currColorSetup].centerInnerClr, sbColors[currColorSetup].centerOuterClr, 60, 0, circleNoiseFunction );
+}
+
+static void playHitSound( int i )
+{
+	snd_Play( sounds[sbScales[currScale].notes[i]], 0.5f, 1.0f, 0.0f, 0 );
+}
+
+static void playChord( int c )
+{
+	for( size_t i = 0; i < ARRAY_SIZE( chords[c] ); ++i ) {
+		if( chords[c][i] == -1 ) continue;
+		playHitSound( chords[c][i] );
+	}
+}
+
+static void playRandomChord( void )
+{
+	playChord( rand_GetRangeS32( NULL, 0, ARRAY_SIZE( chords ) - 1 ) );
 }
 
 static void chooseNewHitSound( )
@@ -400,13 +519,13 @@ static void chooseNewHitSound( )
 	} else if( chance < 85.0f ) {
 		// larger chance of single step
 		int delta = rand_Choice( NULL ) ? 1 : -1;
-		if( ( ( currentHitSound + delta ) < 0 ) || ( ( currentHitSound + delta ) >= ARRAY_SIZE( hitSounds ) ) ) {
+		if( ( ( currentHitSound + delta ) < 0 ) || ( ( currentHitSound + delta ) >= NOTES_PER_SCALE ) ) {
 			delta *= -1;
 		}
 		currentHitSound += delta;
 	} else {
 		// small chance of random
-		currentHitSound = rand_GetRangeS32( NULL, 0, ARRAY_SIZE( hitSounds ) - 1 );
+		currentHitSound = rand_GetRangeS32( NULL, 0, NOTES_PER_SCALE - 1 );
 	}
 }
 
@@ -445,16 +564,12 @@ static bool repulseArc( size_t arcIdx )
 			addLine( oldArc.baseAngle );
 		}
 
-		int c = rand_GetRangeS32( NULL, 0, ARRAY_SIZE( chords ) - 1 );
-		for( size_t i = 0; i < ARRAY_SIZE( chords[c] ); ++i ) {
-			if( chords[c][i] == -1 ) continue;
-			snd_Play( hitSounds[chords[c][i]], 0.5f, 1.0f, 0.0f, 0 );
-		}
+		playRandomChord( );
 
 		return true;
 	} else {
 		chooseNewHitSound( );
-		snd_Play( hitSounds[currentHitSound], 0.5f, 1.0f, 0.0f, 0 );
+		playHitSound( currentHitSound );
 
 		return false;
 	}
@@ -470,6 +585,106 @@ static void processArcInputs( void )
 			}
 		}
 	}
+}
+
+typedef struct {
+	float timeAlive;
+	float currBottom;
+} InfoDisplayHide;
+InfoDisplayHide colorInfoHide;
+InfoDisplayHide scaleInfoHide;
+
+static void updateInfo( InfoDisplayHide* info, float dt )
+{
+	info->timeAlive += dt;
+	if( info->timeAlive <= 1.0f ) {
+		info->currBottom = 390.0f;
+	} else {
+		info->currBottom = lerp( 390.0f, 440.0f, easeInQuad( clamp( 0.0f, 1.0f, ( info->timeAlive - 1.0f ) * 1.25f ) ) );
+	}
+}
+
+static void updateInfoTimeAlive( float dt )
+{
+	updateInfo( &colorInfoHide, dt );
+	updateInfo( &scaleInfoHide, dt );
+}
+
+static void resetInfo( InfoDisplayHide* info )
+{
+	info->timeAlive = 0.0f;
+	info->currBottom = 390.0f;
+}
+
+static void resetInfoTimeAlive( void )
+{
+	resetInfo( &colorInfoHide );
+	resetInfo( &scaleInfoHide );
+}
+
+static void drawColorInfo( void )
+{
+	char txt[128];
+	SDL_snprintf( txt, 128, "'q' and 'w' to cycle palettes\nCurrent palette: %s", sbColors[currColorSetup].name );
+	txt_DisplayString( txt, vec2( -350.0f, colorInfoHide.currBottom ), CLR_WHITE, HORIZ_ALIGN_LEFT, VERT_ALIGN_BOTTOM, textFont, 1, 110, 18.0f );
+}
+
+static void nextColorConfig( void )
+{
+	++currColorSetup;
+	if( currColorSetup >= (int)sb_Count( sbColors ) ) {
+		currColorSetup = 0;
+	}
+
+	gfx_SetClearColor( sbColors[currColorSetup].bgClr );
+
+	resetInfo( &colorInfoHide );
+}
+
+static void prevColorConfig( void )
+{
+	--currColorSetup;
+	if( currColorSetup < 0  ) {
+		currColorSetup = sb_Count( sbColors ) - 1;
+	}
+
+	gfx_SetClearColor( sbColors[currColorSetup].bgClr );
+
+	resetInfo( &colorInfoHide );
+}
+
+static bool playOnChordChange = true;
+static void nextScale( void )
+{
+	++currScale;
+	if( currScale >= (int)sb_Count( sbScales ) ) {
+		currScale = 0;
+	}
+	if( playOnChordChange ) {
+		playChord( 2 );
+	}
+
+	resetInfo( &scaleInfoHide );
+}
+
+static void prevScale( void )
+{
+	--currScale;
+	if( currScale < 0 ) {
+		currScale = sb_Count( sbScales ) - 1;
+	}
+	if( playOnChordChange ) {
+		playChord( 2 );
+	}
+
+	resetInfo( &scaleInfoHide );
+}
+
+static void drawScaleInfo( void )
+{
+	char txt[128];
+	SDL_snprintf( txt, 128, "'a' and 's' to cycle scales\nCurrent scale: %s", sbScales[currScale].name );
+	txt_DisplayString( txt, vec2( 350.0f, scaleInfoHide.currBottom ), CLR_WHITE, HORIZ_ALIGN_RIGHT, VERT_ALIGN_BOTTOM, textFont, 1, 110, 18.0f );
 }
 
 // **********************
@@ -527,6 +742,7 @@ static void updateClouds( float dt )
 static int gameScreen_Enter( void )
 {
 	setColors( );
+	setupScales( );
 
 	Vector2 worldSize;
 	world_GetSize( &worldSize );
@@ -534,7 +750,7 @@ static int gameScreen_Enter( void )
 
 	cam_TurnOnFlags( 0, 1 );
 	
-	gfx_SetClearColor( bgClr );
+	gfx_SetClearColor( sbColors[currColorSetup].bgClr );
 
 	whiteImg = img_Load( "Images/white.png", ST_DEFAULT );
 	img_GetTextureID( whiteImg, &whiteTex );
@@ -549,14 +765,21 @@ static int gameScreen_Enter( void )
 	prevTotalTime = rand_GetRangeFloat( NULL, 0, 30.0f );
 
 	displayFont = txt_CreateSDFFont( "Fonts/NotoSans-Bold.ttf" );
+	textFont = txt_CreateSDFFont( "Fonts/NotoSans-Regular.ttf" );
 
-	hitSounds[0] = snd_LoadSample( "Sounds/blipC2.ogg", 1, false );
-	hitSounds[1] = snd_LoadSample( "Sounds/blipD2.ogg", 1, false );
-	hitSounds[2] = snd_LoadSample( "Sounds/blipE2.ogg", 1, false );
-	hitSounds[3] = snd_LoadSample( "Sounds/blipF2.ogg", 1, false );
-	hitSounds[4] = snd_LoadSample( "Sounds/blipG2.ogg", 1, false );
-	hitSounds[5] = snd_LoadSample( "Sounds/blipA2.ogg", 1, false );
-	hitSounds[6] = snd_LoadSample( "Sounds/blipB2.ogg", 1, false );
+	sounds[0] = snd_LoadSample( "sounds/blipC2.ogg", 1, false );
+	sounds[1] = snd_LoadSample( "sounds/blipCs2.ogg", 1, false );
+	sounds[2] = snd_LoadSample( "sounds/blipD2.ogg", 1, false );
+	sounds[3] = snd_LoadSample( "sounds/blipDs2.ogg", 1, false );
+	sounds[4] = snd_LoadSample( "sounds/blipE2.ogg", 1, false );
+	sounds[5] = snd_LoadSample( "sounds/blipF2.ogg", 1, false );
+	sounds[6] = snd_LoadSample( "sounds/blipFs2.ogg", 1, false );
+	sounds[7] = snd_LoadSample( "sounds/blipG2.ogg", 1, false );
+	sounds[8] = snd_LoadSample( "sounds/blipGs2.ogg", 1, false );
+	sounds[9] = snd_LoadSample( "sounds/blipA2.ogg", 1, false );
+	sounds[10] = snd_LoadSample( "sounds/blipAs2.ogg", 1, false );
+	sounds[11] = snd_LoadSample( "sounds/blipB2.ogg", 1, false );
+	sounds[12] = snd_LoadSample( "sounds/blipC3.ogg", 1, false );
 
 	int* tempIDs = NULL;
 	img_LoadSpriteSheet( "Images/ui.ss", ST_OUTLINED_IMAGE_SDF, &tempIDs );
@@ -587,6 +810,12 @@ static int gameScreen_Enter( void )
 	createCloud( vec2( worldSize.w / 4.0f, -worldSize.h / 4.0f ), 2.0f, 0.1f, .025f );//*/
 
 	gsm_EnterState( &stateMachine, &introState );
+
+	input_BindOnKeyPress( SDLK_q, prevColorConfig );
+	input_BindOnKeyPress( SDLK_w, nextColorConfig );
+
+	input_BindOnKeyPress( SDLK_a, prevScale );
+	input_BindOnKeyPress( SDLK_s, nextScale );
 
 	return 1;
 }
@@ -626,7 +855,7 @@ static void drawDividingLine( DividingLine* line )
 	img_SetDrawScaleV( draw, vec2( line->width, 100.0f ), vec2( line->width, 100.0f ) );
 	line->width = newWidth;
 	img_SetDrawRotation( draw, line->angle, line->angle );
-	img_SetDrawColor( draw, dividingLinesClr, dividingLinesClr );
+	img_SetDrawColor( draw, sbColors[currColorSetup].dividerClr, sbColors[currColorSetup].dividerClr );
 }
 
 static void gameScreen_Draw( void )
@@ -640,7 +869,10 @@ static void gameScreen_Draw( void )
 
 	char text[32];
 	SDL_snprintf( text, 32, "%i", score );
-	txt_DisplayString( text, VEC2_ZERO, bgClr, HORIZ_ALIGN_CENTER, VERT_ALIGN_CENTER, displayFont, 1, 50, 60.0f );
+	txt_DisplayString( text, VEC2_ZERO, sbColors[currColorSetup].scoreTextClr, HORIZ_ALIGN_CENTER, VERT_ALIGN_CENTER, displayFont, 1, 50, 60.0f );
+
+	drawColorInfo( );
+	drawScaleInfo( );
 
 	gsm_Draw( &stateMachine );
 }
@@ -694,6 +926,9 @@ static void introMouseClick( void )
 
 static int intro_Enter( void )
 {
+	resetInfoTimeAlive( );
+
+	playOnChordChange = true;
 	initGame( );
 	input_BindOnMouseButtonPress( SDL_BUTTON_LEFT, introMouseClick );
 	return 1;
@@ -722,16 +957,17 @@ static void intro_Draw( void )
 
 static void intro_PhysicsTick( float dt )
 {
-
 }
 
 // *********************
 //  Play state - play the game
+#define CLICK_ANGLE_BUFFER DEG_TO_RAD( 2.0f )
+static size_t* sbClicked = NULL;
+
 static void playMouseClick( void )
 {
 	// check the angle from the center, if it matches any arcs, if that arc is in the warning zone, and if it's currently moving inwards
 	//  if it is then repel it
-
 	Vector2 clickPos;
 	input_GetMousePosition( &clickPos );
 	Vector2 worldSize;
@@ -744,6 +980,7 @@ static void playMouseClick( void )
 	angle = radianRotWrap( angle );
 	//llog( LOG_DEBUG, "angle: %f", RAD_TO_DEG( angle ) );
 
+	sb_Clear( sbClicked );
 	for( size_t i = 0; i < sb_Count( sbArcs ); ++i ) {
 
 		if( ( sbArcs[i].baseDistance - sbArcs[i].halfWidth ) > WARNING_RADIUS ) continue;
@@ -753,16 +990,32 @@ static void playMouseClick( void )
 		float dist = radianRotDiff( sbArcs[i].baseAngle, angle );
 		//llog( LOG_DEBUG, "diff: %f", RAD_TO_DEG( dist ) );
 
-		if( fabsf( dist ) <= sbArcs[i].halfArc ) {
+		if( fabsf( dist ) <= ( sbArcs[i].halfArc + CLICK_ANGLE_BUFFER ) ) {
 			//llog( LOG_DEBUG, "Found %i", i );
-			sbArcs[i].isClicked = true;
+			//sbArcs[i].isClicked = true;
 			//repulseArc( i );
+			sb_Push( sbClicked, i );
 		}
+	}
+
+	// find the valid click that is the closest to the center and click them
+	size_t closest = SIZE_MAX;
+	float closestDist = 10000.0f;
+	for( size_t i = 0; i < sb_Count( sbClicked ); ++i ) {
+		if( sbArcs[sbClicked[i]].baseDistance < closestDist ) {
+			closest = sbClicked[i];
+			closestDist = sbArcs[sbClicked[i]].baseDistance;
+		}
+	}
+
+	if( closest != SIZE_MAX ) {
+		sbArcs[closest].isClicked = true;
 	}
 }
 
 static int play_Enter( void )
 {
+	playOnChordChange = false;
 	input_BindOnMouseButtonPress( SDL_BUTTON_LEFT, playMouseClick );
 	return 1;
 }
@@ -791,6 +1044,7 @@ static void play_Draw( void )
 static void play_PhysicsTick( float dt )
 {
 	arcPhysics( dt );
+	updateInfoTimeAlive( dt );
 }
 
 // *********************
@@ -804,6 +1058,8 @@ static void gameOverMouseClick( void )
 
 static int gameOver_Enter( void )
 {
+	resetInfoTimeAlive( );
+	playOnChordChange = true;
 	timeInGameOver = 0.0f;
 	input_BindOnMouseButtonPress( SDL_BUTTON_LEFT, gameOverMouseClick );
 	return 1;
