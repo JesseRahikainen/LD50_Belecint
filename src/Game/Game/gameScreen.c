@@ -807,19 +807,19 @@ static int gameScreen_Enter( void )
 	displayFont = txt_CreateSDFFont( "Fonts/NotoSans-Bold.ttf" );
 	textFont = txt_CreateSDFFont( "Fonts/NotoSans-Regular.ttf" );
 
-	sounds[0] = snd_LoadSample( "sounds/blipC2.ogg", 1, false );
-	sounds[1] = snd_LoadSample( "sounds/blipCs2.ogg", 1, false );
-	sounds[2] = snd_LoadSample( "sounds/blipD2.ogg", 1, false );
-	sounds[3] = snd_LoadSample( "sounds/blipDs2.ogg", 1, false );
-	sounds[4] = snd_LoadSample( "sounds/blipE2.ogg", 1, false );
-	sounds[5] = snd_LoadSample( "sounds/blipF2.ogg", 1, false );
-	sounds[6] = snd_LoadSample( "sounds/blipFs2.ogg", 1, false );
-	sounds[7] = snd_LoadSample( "sounds/blipG2.ogg", 1, false );
-	sounds[8] = snd_LoadSample( "sounds/blipGs2.ogg", 1, false );
-	sounds[9] = snd_LoadSample( "sounds/blipA2.ogg", 1, false );
-	sounds[10] = snd_LoadSample( "sounds/blipAs2.ogg", 1, false );
-	sounds[11] = snd_LoadSample( "sounds/blipB2.ogg", 1, false );
-	sounds[12] = snd_LoadSample( "sounds/blipC3.ogg", 1, false );
+	sounds[0] = snd_LoadSample( "Sounds/blipC2.ogg", 1, false );
+	sounds[1] = snd_LoadSample( "Sounds/blipCs2.ogg", 1, false );
+	sounds[2] = snd_LoadSample( "Sounds/blipD2.ogg", 1, false );
+	sounds[3] = snd_LoadSample( "Sounds/blipDs2.ogg", 1, false );
+	sounds[4] = snd_LoadSample( "Sounds/blipE2.ogg", 1, false );
+	sounds[5] = snd_LoadSample( "Sounds/blipF2.ogg", 1, false );
+	sounds[6] = snd_LoadSample( "Sounds/blipFs2.ogg", 1, false );
+	sounds[7] = snd_LoadSample( "Sounds/blipG2.ogg", 1, false );
+	sounds[8] = snd_LoadSample( "Sounds/blipGs2.ogg", 1, false );
+	sounds[9] = snd_LoadSample( "Sounds/blipA2.ogg", 1, false );
+	sounds[10] = snd_LoadSample( "Sounds/blipAs2.ogg", 1, false );
+	sounds[11] = snd_LoadSample( "Sounds/blipB2.ogg", 1, false );
+	sounds[12] = snd_LoadSample( "Sounds/blipC3.ogg", 1, false );
 
 	int* tempIDs = NULL;
 	img_LoadSpriteSheet( "Images/ui.ss", ST_OUTLINED_IMAGE_SDF, &tempIDs );
