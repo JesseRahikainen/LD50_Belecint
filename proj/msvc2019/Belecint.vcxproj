@@ -112,7 +112,7 @@
       <DisableSpecificWarnings>4100;4189;4201;4996;4127;4756;6385;6386;26451;6255;6385;26451;4456;4457</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
