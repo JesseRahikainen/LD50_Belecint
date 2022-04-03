@@ -463,6 +463,8 @@ void processEvents( int windowsEventsOnly )
 		// special keys used only on the pc version, primarily for taking screenshots of scenes at different resolutions
 #if defined( WIN32 )
 		if( e.type == SDL_KEYDOWN ) {
+
+#ifdef _DEBUG
 			if( e.key.keysym.sym == SDLK_PRINTSCREEN ) {
 				// take a screen shot
 
@@ -481,11 +483,13 @@ void processEvents( int windowsEventsOnly )
 				mem_Release( fileName );
 				mem_Release( savePath );
 			}
+#endif
 
 			if( e.key.keysym.sym == SDLK_PAUSE ) {
 				// pause the game
 				paused = !paused;
 			}
+
 
 			// have the F# keys change the size of the window based on some predetermined values
 			/*int pressedFKey = -1;
