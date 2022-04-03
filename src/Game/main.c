@@ -29,15 +29,6 @@
 
 #include "gameState.h"
 #include "Game/gameScreen.h"
-#include "Game/testAStarScreen.h"
-#include "Game/testJobQueueScreen.h"
-#include "Game/testSoundsScreen.h"
-#include "Game/testPointerResponseScreen.h"
-#include "Game/testSteeringScreen.h"
-#include "Game/bordersTestScreen.h"
-#include "Game/hexTestScreen.h"
-#include "Game/testBloomScreen.h"
-#include "Game/gameOfUrScreen.h"
 
 #include "System/memory.h"
 #include "System/systems.h"
@@ -54,16 +45,16 @@
 // 540 x 960
 
 #define DESIRED_WORLD_WIDTH 800
-#define DESIRED_WORLD_HEIGHT 600
+#define DESIRED_WORLD_HEIGHT 800
 
 #define DESIRED_RENDER_WIDTH 800
-#define DESIRED_RENDER_HEIGHT 600
+#define DESIRED_RENDER_HEIGHT 800
 #ifdef __EMSCRIPTEN__
 	#define DESIRED_WINDOW_WIDTH RENDER_WIDTH
 	#define DESIRED_WINDOW_HEIGHT RENDER_HEIGHT
 #else
 	#define DESIRED_WINDOW_WIDTH 800
-	#define DESIRED_WINDOW_HEIGHT 600
+	#define DESIRED_WINDOW_HEIGHT 800
 #endif
 
 #define DEFAULT_REFRESH_RATE 30
@@ -76,7 +67,7 @@ static Uint64 lastTicks;
 static Uint64 physicsTickAcc;
 static SDL_Window* window;
 static SDL_RWops* logFile;
-static const char* windowName = "Xturos";
+static const char* windowName = "Belecint";
 
 typedef struct {
 	uint32_t width;
@@ -268,7 +259,7 @@ int initEverything( void )
 	SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, stencilSize );
 #if !defined( __ANDROID__ ) && !defined( __IPHONEOS__ )
 	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 1 );
-	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 4 );
+	SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 16 );
 #endif
 
 	llog( LOG_INFO, "Desired GL version: %i.%i", majorVersion, minorVersion );
@@ -283,7 +274,7 @@ int initEverything( void )
 	int windowHeight = DESIRED_WINDOW_HEIGHT;
 	int windowWidth = DESIRED_WINDOW_WIDTH;
 
-	Uint32 windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+	Uint32 windowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL;
  #endif
 
 #elif defined( METAL_GFX )
@@ -497,7 +488,7 @@ void processEvents( int windowsEventsOnly )
 			}
 
 			// have the F# keys change the size of the window based on some predetermined values
-			int pressedFKey = -1;
+			/*int pressedFKey = -1;
 			if( e.key.keysym.sym == SDLK_F1 ) pressedFKey = 0;
 			if( e.key.keysym.sym == SDLK_F2 ) pressedFKey = 1;
 			if( e.key.keysym.sym == SDLK_F3 ) pressedFKey = 2;
@@ -526,7 +517,7 @@ void processEvents( int windowsEventsOnly )
 			if( ( pressedFKey != -1 ) && ( pressedFKey < ARRAY_SIZE( resolutions ) ) ) {
 				// switch resolution
 				SDL_SetWindowSize( window, resolutions[pressedFKey].width, resolutions[pressedFKey].height );
-			}
+			}//*/
 		}
 #endif
 
@@ -680,16 +671,7 @@ int main( int argc, char** argv )
 	focused = true;
 #endif
 
-	//gsm_EnterState( &globalFSM, &gameScreenState );
-	//gsm_EnterState( &globalFSM, &testAStarScreenState );
-	//gsm_EnterState( &globalFSM, &testJobQueueScreenState );
-	//gsm_EnterState( &globalFSM, &testSoundsScreenState );
-	//gsm_EnterState( &globalFSM, &testPointerResponseScreenState );
-	//gsm_EnterState( &globalFSM, &testSteeringScreenState );
-	//gsm_EnterState( &globalFSM, &bordersTestScreenState );
-	//gsm_EnterState( &globalFSM, &hexTestScreenState );
-	//gsm_EnterState( &globalFSM, &testBloomScreenState );
-	gsm_EnterState( &globalFSM, &gameOfUrScreenState );
+	gsm_EnterState( &globalFSM, &gameScreenState );
 
 #if defined( __EMSCRIPTEN__ )
 	emscripten_set_main_loop_arg( mainLoop, NULL, -1, 1 );
