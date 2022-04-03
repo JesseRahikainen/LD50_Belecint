@@ -584,7 +584,7 @@ static int gameScreen_Enter( void )
 	createCloud( vec2( -worldSize.w / 4.0f, -worldSize.h / 4.0f ), 2.0f, 0.1f, .025f );
 
 	createCloud( vec2( worldSize.w / 4.0f, -worldSize.h / 4.0f ), 2.0f, -0.1f, .025f );
-	createCloud( vec2( worldSize.w / 4.0f, -worldSize.h / 4.0f ), 2.0f, 0.1f, .025f );
+	createCloud( vec2( worldSize.w / 4.0f, -worldSize.h / 4.0f ), 2.0f, 0.1f, .025f );//*/
 
 	gsm_EnterState( &stateMachine, &introState );
 

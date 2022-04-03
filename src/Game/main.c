@@ -49,9 +49,9 @@
 
 #define DESIRED_RENDER_WIDTH 800
 #define DESIRED_RENDER_HEIGHT 800
-#ifdef __EMSCRIPTEN__
-	#define DESIRED_WINDOW_WIDTH RENDER_WIDTH
-	#define DESIRED_WINDOW_HEIGHT RENDER_HEIGHT
+#if defined( __EMSCRIPTEN__ )
+	#define DESIRED_WINDOW_WIDTH DESIRED_WORLD_WIDTH
+	#define DESIRED_WINDOW_HEIGHT DESIRED_WORLD_HEIGHT
 #else
 	#define DESIRED_WINDOW_WIDTH 800
 	#define DESIRED_WINDOW_HEIGHT 800
@@ -140,14 +140,14 @@ void logOutput( void* userData, int category, SDL_LogPriority priority, const ch
 
 static void initIMGUI( NuklearWrapper* imgui, bool useRelativeMousePos, int width, int height )
 {
-	nk_xu_init( imgui, window, useRelativeMousePos, width, height );
+	/*nk_xu_init( imgui, window, useRelativeMousePos, width, height );
 
 	struct nk_font_atlas* fontAtlas;
 	nk_xu_fontStashBegin( imgui, &fontAtlas );
 	// load fonts
 	struct nk_font *font = nk_font_atlas_add_from_file( fontAtlas, "./Fonts/kenpixel.ttf", 12, 0 );
 	nk_xu_fontStashEnd( imgui );
-	nk_style_set_font( &( imgui->ctx ), &( font->handle ) );
+	nk_style_set_font( &( imgui->ctx ), &( font->handle ) );//*/
 }
 
 int unalignedAccess( void )
@@ -222,7 +222,7 @@ int initEverything( void )
 	int stencilSize;
 
  #if defined( __EMSCRIPTEN__ )
-	majorVersion = 2;
+	majorVersion = 3;
 	minorVersion = 0;
 	redSize = 8;
 	greenSize = 8;
@@ -403,8 +403,8 @@ int handleIOSEvents( void* userData, SDL_Event* event )
 void processEvents( int windowsEventsOnly )
 {
 	SDL_Event e;
-	nk_input_begin( &( editorIMGUI.ctx ) );
-	nk_input_begin( &( inGameIMGUI.ctx ) );
+	//nk_input_begin( &( editorIMGUI.ctx ) );
+	//nk_input_begin( &( inGameIMGUI.ctx ) );
 	while( SDL_PollEvent( &e ) != 0 ) {
 		if( e.type == SDL_WINDOWEVENT ) {
 			switch( e.window.event ) {
@@ -525,12 +525,12 @@ void processEvents( int windowsEventsOnly )
 		input_ProcessEvents( &e );
 		gsm_ProcessEvents( &globalFSM, &e );
 		//imgui_ProcessEvents( &e ); // just for TextInput events when text input is enabled
-		nk_xu_handleEvent( &editorIMGUI, &e );
-		nk_xu_handleEvent( &inGameIMGUI, &e );
+		//nk_xu_handleEvent( &editorIMGUI, &e );
+		//nk_xu_handleEvent( &inGameIMGUI, &e );
 	}
 
-	nk_input_end( &( editorIMGUI.ctx ) );
-	nk_input_end( &( inGameIMGUI.ctx ) );
+	//nk_input_end( &( editorIMGUI.ctx ) );
+	//nk_input_end( &( inGameIMGUI.ctx ) );
 }
 
 static int skipEvents = 3;
